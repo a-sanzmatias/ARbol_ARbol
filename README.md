@@ -1,2 +1,2 @@
-# ARBol_treegame
+# ARbol_treegame
 very simple game to learn how to identify Arkansas' tree species. 

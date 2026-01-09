@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tree Species Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #eef2ee;
+      padding: 20px;
+    }
+
+    img#treeImage {
+      max-width: 400px;
+      max-height: 300px;
+      border: 2px solid #888;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+
+    button {
+      display: block;
+      width: 320px;
+      margin: 8px auto;
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button.correct {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    button.wrong {
+      background-color: #f44336;
+      color: white;
+    }
+
+    #score {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    #extraImages img {
+      max-width: 150px;
+      max-height: 120px;
+      border: 2px solid #4CAF50;
+      border-radius: 5px;
+      margin: 5px;
+    }
+
+    #extraImages p {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Guess the Tree Species</h1>
+
+<img id="treeImage" alt="Tree image">
+
+<div id="choices"></div>
+
+<div id="extraImages"></div>
+
+<div id="score">Score: 0</div>
+
+<script>
+let trees = [];
+let score = 0;
+let correctTree;
+
+const imageEl = document.getElementById("treeImage");
+const choicesEl = document.getElementById("choices");
+const scoreEl = document.getElementById("score");
+const extraImagesEl = document.getElementById("extraImages");
+
+// Load tree data
+fetch("trees.json")
+  .then(response => response.json())
+  .then(data => {
+    trees = data;
+    newRound();
+  })
+  .catch(err => console.error("Error loading trees.json:", err));
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function newRound() {
+  choicesEl.innerHTML = "";
+  extraImagesEl.innerHTML = "";
+
+  // Pick correct tree
+  correctTree = trees[Math.floor(Math.random() * trees.length)];
+
+  // Pick a random image of the correct tree
+  const image = correctTree.images[Math.floor(Math.random() * correctTree.images.length)];
+  imageEl.src = image;
+
+  // Pick 3 random wrong trees
+  const wrongTrees = shuffle(trees.filter(t => t !== correctTree)).slice(0, 3);
+
+  // Combine correct + wrong and shuffle
+  const options = shuffle([correctTree, ...wrongTrees])
+    .map(t => `${t.species} (${t.common})`);
+
+  // Create buttons
+  options.forEach(option => {
+    const btn = document.createElement("button");
+    btn.textContent = option;
+    btn.onclick = () => checkAnswer(btn, option);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function renderInfoCardSummary(tree) {
+  const summary = document.createElement("div");
+  summary.style.marginTop = "20px";
+  summary.style.padding = "15px";
+  summary.style.background = "#ffffff";
+  summary.style.border = "2px solid #888";
+  summary.style.borderRadius = "8px";
+  summary.style.textAlign = "left";
+  summary.style.maxWidth = "600px";
+  summary.style.marginLeft = "auto";
+  summary.style.marginRight = "auto";
+
+//  const title = document.createElement("h3");
+//  title.textContent = "Species Information";
+//  summary.appendChild(title);
+
+  Object.entries(tree).forEach(([key, value]) => {
+    if (key === "info_html") {
+     
+         const p = document.createElement("p");
+         const label = key
+           .replace(/_/g, " ")
+           .replace(/\b\w/g, c => c.toUpperCase());
+     
+         //p.innerHTML = `<strong>${label}:</strong> ${value}`;
+         p.innerHTML = `${value}`;
+         summary.appendChild(p);
+         };
+  });
+
+  return summary;
+}
+/* ========================================== */
+
+function checkAnswer(button, answer) {
+  const correct = `${correctTree.species} (${correctTree.common})`;
+
+  // Disable all buttons
+  choicesEl.querySelectorAll("button").forEach(btn => btn.disabled = true);
+
+  // Highlight button
+  if (answer === correct) {
+    button.classList.add("correct");
+    score++;
+    scoreEl.textContent = "Score: " + score;
+  } else {
+    button.classList.add("wrong");
+    choicesEl.querySelectorAll("button").forEach(btn => {
+      if (btn.textContent === correct) btn.classList.add("correct");
+    });
+  }
+
+  // Show message
+  const msg = document.createElement("p");
+  msg.textContent = answer === correct
+    ? "Correct! Here are other pictures of this species:"
+    : `Wrong! Correct answer: ${correct}`;
+  extraImagesEl.appendChild(msg);
+
+  // Show all other images of the correct species
+  correctTree.images.forEach(imgUrl => {
+    if (imgUrl !== imageEl.src) {
+      const img = document.createElement("img");
+      img.src = imgUrl;
+      extraImagesEl.appendChild(img);
+    }
+  });
+
+  // Add a "Next" button
+  const nextBtn = document.createElement("button");
+  nextBtn.textContent = "Next";
+  nextBtn.onclick = () => newRound();
+  extraImagesEl.appendChild(nextBtn);
+
+  extraImagesEl.appendChild(renderInfoCardSummary(correctTree));
+}
+</script>
+
+</body>
+</html>
+
